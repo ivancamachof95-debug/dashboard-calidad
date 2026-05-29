@@ -1,0 +1,94 @@
+Fecha,Semana,Mes,Año,Laboratorio,Producto,Variante,Lote,Cantidad recibida,Cantidad con incidencia,Incidencia 1,Incidencia 2,Incidencia 3,Estatus,Observaciones,¿Tiene incidencia?,% Incidencia
+02/05/2026,18,mayo,2026,Zuma,Citrate Mag,240 cápsulas,2657504,1470.00,0.00,,,,Liberado,,No,0.00%
+04/05/2026,19,mayo,2026,Zuma,Citrate Mag,240 cápsulas,2657504,1800.00,0.00,,,,Liberado,,No,0.00%
+04/05/2026,19,mayo,2026,Zuma,Citrate Mag,240 cápsulas,2657504,1840.00,19.00,Bote dañado,,,Liberado,,Sí,1.03%
+04/05/2026,19,mayo,2026,GCE,Vsion Blend,180 cápsulas,VSCB070426,1328.00,0.00,,,,Liberado,,No,0.00%
+05/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,210042603,1200.00,0.00,,,,Liberado,,No,0.00%
+05/05/2026,19,mayo,2026,GCE,Icelandic Krill Oil,150 cápsulas,IKCB060426,850.00,10.00,Mal grabado,,,Liberado,,Sí,1.18%
+05/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042603,360.00,0.00,,,,Liberado,,No,0.00%
+05/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042604,360.00,8.00,Mal grabado,,,Liberado,,Sí,2.22%
+06/05/2026,19,mayo,2026,GCE,Vsion Blend,180 cápsulas,VSCB070426,1500.00,3.00,Mal grabado,,,Liberado,,Sí,0.20%
+06/05/2026,19,mayo,2026,GCE,Vsion Blend,180 cápsulas,VSCB070426,1500.00,0.00,,,,Liberado,,No,0.00%
+06/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,210042603,450.00,0.00,,,,Liberado,,No,0.00%
+06/05/2026,19,mayo,2026,GCE,Vsion Blend,180 cápsulas,VSCB070426,1500.00,5.00,Mal grabado,,,Liberado,,Sí,0.33%
+06/05/2026,19,mayo,2026,PH&S,Omega 3 Platinum,180 cápsulas,222042602,1198.00,4.00,Mal grabado,,,Liberado,,Sí,0.33%
+06/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,210042602,1170.00,4.00,Producto incompleto,,,Liberado,,Sí,0.34%
+06/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042602,30.00,0.00,,,,Liberado,,No,0.00%
+06/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,208042604,360.00,0.00,,,,Liberado,,No,0.00%
+06/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,208042604,1200.00,54.00,Mal grabado,,,Liberado,,Sí,4.50%
+06/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,210042602,450.00,0.00,,,,Liberado,,No,0.00%
+07/05/2026,19,mayo,2026,PH&S,Coconut Oil D3+K2,300 cápsulas,206042604,2046.00,39.00,Mal grabado,,,Liberado,,Sí,1.91%
+07/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042604,360.00,0.00,,,,Liberado,,No,0.00%
+07/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042602,1200.00,8.00,Lote incorrecto,,,Liberado,,Sí,0.67%
+07/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042601,1200.00,16.00,Mal grabado,,,Liberado,,Sí,1.33%
+08/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,208042604,1200.00,2.00,Mal grabado,,,Liberado,,Sí,0.17%
+08/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042602,1200.00,4.00,Mal grabado,,,Liberado,,Sí,0.33%
+09/05/2026,19,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042601,1200.00,4.00,Mal grabado,Producto incompleto,,Liberado,,Sí,0.33%
+11/05/2026,20,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042604,1200.00,75.00,Mal grabado,,,Liberado,,Sí,6.25%
+11/05/2026,20,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042604,1200.00,40.00,Mal grabado,Lote incorrecto,,Liberado,,Sí,3.33%
+11/05/2026,20,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,210042602,1200.00,13.00,Mal grabado,,,Liberado,,Sí,1.08%
+11/05/2026,20,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,209042602,330.00,0.00,,,,Liberado,,No,0.00%
+12/05/2026,20,mayo,2026,PH&S,Omega 3 Platinum,180 cápsulas,222042603,420.00,60.00,Mal grabado,,,Liberado,,Sí,14.29%
+12/05/2026,20,mayo,2026,PH&S,Omega 3 Platinum,180 cápsulas,222042602,360.00,30.00,Mal grabado,Lote incorrecto,,Liberado,,Sí,8.33%
+13/05/2026,20,mayo,2026,PH&S,Omega 3 Platinum,180 cápsulas,224042604,1200.00,0.00,,,,Liberado,,No,0.00%
+13/05/2026,20,mayo,2026,PH&S,Omega 3 Platinum,180 cápsulas,224042603,1200.00,5.00,Mal grabado,,,Liberado,,Sí,0.42%
+14/05/2026,20,mayo,2026,Zuma,Pure Berberine,180 cápsulas,2660505,1620.00,0.00,,,,Liberado,,No,0.00%
+14/05/2026,20,mayo,2026,Zuma,Omega 3 Salmon,180 cápsulas,2660905,1800.00,0.00,,,,Liberado,,No,0.00%
+14/05/2026,20,mayo,2026,Zuma,Ashwagandha,200 cápsulas,2658904,1800.00,0.00,,,,Liberado,,No,0.00%
+15/05/2026,20,mayo,2026,Zuma,Ashwagandha,200 cápsulas,2658904,488.00,0.00,,,,Liberado,,No,0.00%
+15/05/2026,20,mayo,2026,GCE,Myo & D-Chiro Inositol Platinum,246 g,MYPB270426,8812.00,18.00,Mal grabado,,,Liberado,,Sí,0.20%
+15/05/2026,20,mayo,2026,Zuma,Omega 3 Salmon,180 cápsulas,2660905,420.00,22.00,Mal grabado,,,Liberado,,Sí,5.24%
+15/05/2026,20,mayo,2026,Zuma,Pure Berberine,180 cápsulas,2660505,300.00,2.00,Mal grabado,,,Liberado,,Sí,0.67%
+15/05/2026,20,mayo,2026,Zuma,Citrate Mag,240 cápsulas,2661005,332.00,0.00,,,,Liberado,,No,0.00%
+15/05/2026,20,mayo,2026,PH&S,Omega 3 Platinum,180 cápsulas,224042602,120.00,0.00,,,,Liberado,,No,0.00%
+15/05/2026,20,mayo,2026,GCE,Icelandic Krill Oil,150 cápsulas,IKCB060426,200.00,1.00,Mal grabado,,,Liberado,,Sí,0.50%
+16/05/2026,20,mayo,2026,PH&S,Coconut Oil D3+K13,300 cápsulas,224042603,720.00,1.00,Mal grabado,,,Liberado,,Sí,0.14%
+18/05/2026,21,mayo,2026,Zuma,Pure Berberine,180 cápsulas,2660505,30.00,0.00,,,,Liberado,,No,0.00%
+19/05/2026,21,mayo,2026,Zuma,Pure Berberine,180 cápsulas,2660505,622.00,0.00,,,,Liberado,,No,0.00%
+19/05/2026,21,mayo,2026,GCE,Myo & D-Chiro Inositol Platinum,246 g,MYPB270426,206.00,1.00,Mal grabado,,,Liberado,,Sí,0.49%
+20/05/2026,21,mayo,2026,Zuma,Myo & D-Chiro Inositol Platinum,240 cápsulas,2637101,160.00,0.00,,,,Liberado,,No,0.00%
+20/05/2026,21,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,213052602,1140.00,33.00,Lote incorrecto,Mal grabado,Mala inyección,Liberado,,Sí,2.89%
+21/05/2026,21,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,213152602,1200.00,12.00,Mal grabado,,,Liberado,,Sí,1.00%
+25/05/2026,22,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,215052603,160.00,4.00,Etiqueta dañada,,,Recibido,,Sí,2.50%
+25/05/2026,22,mayo,2026,PH&S,Omega 3 Salmon,180 cápsulas,213052603,1200.00,150.00,Mal grabado,Mala inyección,,Rechazado,No apto Retail ,Sí,12.50%
+26/05/2026,22,mayo,2026,GCE,Glycinate Mag,240 cápsulas,GMCB110526,1500.00,0.00,,,,Liberado,,No,0.00%
+26/05/2026,22,mayo,2026,GCE,Glycinate Mag,240 cápsulas,GMCB110526,1500.00,0.00,,,,Liberado,,No,0.00%
+26/05/2026,22,mayo,2026,GCE,Glycinate Mag,240 cápsulas,GMCB110526,300.00,3.00,Bote dañado,Mal grabado,,Liberado,,Sí,1.00%
+26/05/2026,22,mayo,2026,GCE,Myo & D-Chiro Inositol Platinum,246 g,MYPB190526,1041.00,6.00,Mal grabado,,,Liberado,,Sí,0.58%
+26/05/2026,22,mayo,2026,PH&S,Coconut Oil D3+K2,300 cápsulas,207042601,2229.00,66.00,Mal grabado,,,Recibido,,Sí,2.96%
+27/05/2026,22,mayo,2026,PH&S,Coconut Oil D3+K2,300 cápsulas,202042603,2237.00,23.00,Mal grabado,,,Recibido,,Sí,1.03%
+27/05/2026,22,mayo,2026,GCE,Myo & D-Chiro Inositol Platinum,246 g,MYPB190526,1152.00,13.00,Bote dañado,,,Liberado,,Sí,1.13%
+27/05/2026,22,mayo,2026,PH&S,Coconut Oil D3+K2,300 cápsulas,203042601,2240.00,4.00,Producto incompleto,,,Recibido,,Sí,0.18%
+27/05/2026,22,mayo,2026,PH&S,Coconut Oil D3+K2,300 cápsulas,207042602,2237.00,0.00,,,,Recibido,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,No,0.00%
+,,,,,,,,,,,,,,,,0.00%
