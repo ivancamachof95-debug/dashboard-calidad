@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Calidad — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root {
+  --bg:      #0d0f14;
+  --bg2:     #13161e;
+  --bg3:     #1a1e28;
+  --border:  #252a38;
+  --text:    #e8eaf0;
+  --muted:   #6b7280;
+  --blue:    #3b82f6;
+  --green:   #10b981;
+  --orange:  #f59e0b;
+  --red:     #ef4444;
+  --purple:  #8b5cf6;
+  --zuma:    #3b82f6;
+  --gce:     #10b981;
+  --phs:     #f59e0b;
+  --r:       12px;
+  --font:    "DM Sans", sans-serif;
+  --mono:    "DM Mono", monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+/* ── Header ── */
+.hdr {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 18px 32px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 100;
+}
+.hdr-left { display: flex; align-items: center; gap: 14px; }
+.logo {
+  width: 38px; height: 38px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--green) 100%);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.hdr-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.hdr-sub   { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.hdr-right { display: flex; align-items: center; gap: 14px; }
+.update-tag {
+  font-size: 12px; color: var(--muted); font-family: var(--mono);
+  background: var(--bg3); border: 1px solid var(--border);
+  padding: 5px 10px; border-radius: 6px;
+}
+
+/* ── Upload button ── */
+.upload-btn {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; font-family: var(--font); font-weight: 500;
+  color: var(--text); background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 14px; cursor: pointer; transition: border-color .2s, background .2s;
+}
+.upload-btn:hover { border-color: var(--blue); background: #1e2436; }
+.upload-btn svg { flex-shrink: 0; }
+#fileInput { display: none; }
+
+/* ── Main ── */
+.main { padding: 26px 32px; max-width: 1400px; margin: 0 auto; }
+
+/* ── Filters ── */
+.filters { display: flex; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; align-items: center; }
+.f-group  { display: flex; align-items: center; gap: 8px; }
+.f-label  { font-size: 12px; color: var(--muted); }
+.f-sep    { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+select {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font); font-size: 13px;
+  padding: 7px 11px; border-radius: 8px; cursor: pointer; outline: none;
+  transition: border-color .2s;
+}
+select:hover, select:focus { border-color: var(--blue); }
+
+/* ── KPIs ── */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 13px; margin-bottom: 26px;
+}
+.kpi {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px 20px;
+  position: relative; overflow: hidden;
+  transition: transform .15s, border-color .2s;
+  animation: fadeUp .4s ease both;
+}
+.kpi:hover { transform: translateY(-2px); border-color: #353b52; }
+.kpi::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; background: var(--ac, var(--blue));
+}
+.kpi.danger { --ac: var(--red); }
+.kpi.warn   { --ac: var(--orange); }
+.kpi.ok     { --ac: var(--green); }
+.kpi.info   { --ac: var(--blue); }
+.kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 9px; }
+.kpi-val   { font-size: 27px; font-weight: 600; letter-spacing: -.02em; font-family: var(--mono); }
+.kpi-sub   { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+/* ── Cards ── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid1 { margin-bottom: 14px; }
+
+/* ── Lab summary table ── */
+.lab-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+.lab-table thead th {
+  text-align: left; padding: 7px 10px;
+  color: var(--muted); font-weight: 500; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+}
+.lab-table thead th:not(:first-child) { text-align: right; }
+.lab-table tbody tr { transition: background .15s; }
+.lab-table tbody tr:hover { background: #1e2330; }
+.lab-table tbody td {
+  padding: 8px 10px; border-bottom: 1px solid #1e2330;
+  color: var(--text);
+}
+.lab-table tbody td:not(:first-child) { text-align: right; font-family: var(--mono); font-size: 12px; }
+.lab-table .lab-dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 2px; margin-right: 7px; vertical-align: middle;
+}
+.pct-bar-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.pct-bar-bg { flex: 1; height: 5px; background: #252a38; border-radius: 3px; max-width: 60px; }
+.pct-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+.lab-table tfoot td {
+  padding: 8px 10px; font-weight: 600;
+  color: var(--muted); font-size: 11px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+}
+.lab-table tfoot td:not(:first-child) { text-align: right; }
+.tbl-title {
+  font-size: 11px; font-weight: 500; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 7px;
+  border-top: 1px solid var(--border); padding-top: 16px; margin-top: 4px;
+}
+.tbl-title::before { content:""; width:3px; height:12px; border-radius:2px; background:var(--purple); flex-shrink:0; }
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px;
+  animation: fadeUp .5s ease both; animation-delay: .25s;
+}
+.card-title {
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.card-title::before {
+  content: ""; width: 3px; height: 13px; border-radius: 2px;
+  background: var(--ac, var(--blue)); flex-shrink: 0;
+}
+.card.g { --ac: var(--green); }
+.card.o { --ac: var(--orange); }
+.card.r { --ac: var(--red); }
+.card.p { --ac: var(--purple); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.legend span { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.ldot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.kpi:nth-child(1){animation-delay:.04s}
+.kpi:nth-child(2){animation-delay:.09s}
+.kpi:nth-child(3){animation-delay:.14s}
+.kpi:nth-child(4){animation-delay:.19s}
+.kpi:nth-child(5){animation-delay:.24s}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .main{padding:14px}
+  .hdr{padding:12px 14px; flex-wrap:wrap; gap:10px}
+  .grid2{grid-template-columns:1fr}
+  .kpi-val{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="logo">⚗️</div>
+    <div>
+      <div class="hdr-title">Control de Calidad</div>
+      <div class="hdr-sub">Inspección de lotes por laboratorio · Ene–May 2026</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <label class="upload-btn" for="fileInput">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Cargar CSV
+    </label>
+    <input type="file" id="fileInput" accept=".csv,.txt">
+    <div class="update-tag" id="updateTag">Datos integrados · May 2026</div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="filters">
+    <div class="f-group"><span class="f-label">Laboratorio</span>
+      <select id="filtLab"><option value="">Todos</option></select></div>
+    <div class="f-sep"></div>
+    <div class="f-group"><span class="f-label">Mes</span>
+      <select id="filtMes"><option value="">Todos</option></select></div>
+    <div class="f-sep"></div>
+    <div class="f-group"><span class="f-label">Semana</span>
+      <select id="filtSem"><option value="">Todas</option></select></div>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Recibido vs. Con incidencia por laboratorio</div>
+      <div class="legend">
+        <span><span class="ldot" style="background:#3b82f6"></span>Recibido</span>
+        <span><span class="ldot" style="background:#ef4444"></span>Con incidencia</span>
+      </div>
+      <div style="height:230px"><canvas id="cBar"></canvas></div>
+    </div>
+    <div class="card o">
+      <div class="card-title">Tipos de incidencia</div>
+      <div class="legend" id="legDef"></div>
+      <div style="height:230px"><canvas id="cDef"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid1">
+    <div class="card g">
+      <div class="card-title">% de incidencia diario</div>
+      <div style="height:180px"><canvas id="cLine"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card r">
+      <div class="card-title">% de incidencia por producto</div>
+      <div class="legend" id="legProd"></div>
+      <div id="prodWrap"></div>
+    </div>
+    <div class="card p">
+      <div class="card-title">Tendencia mensual · % incidencia</div>
+      <div style="height:260px"><canvas id="cMes"></canvas></div>
+      <div id="labTableWrap" style="margin-top:18px"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const MESES_ORDEN = {enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12};
+const MESES_LABEL = {1:"Ene",2:"Feb",3:"Mar",4:"Abr",5:"May",6:"Jun",7:"Jul",8:"Ago",9:"Sep",10:"Oct",11:"Nov",12:"Dic"};
+const LAB_BASE  = {Zuma:"#3b82f6",GCE:"#10b981","PH&S":"#f59e0b"};
+const PALETTE   = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#06b6d4","#a3e635"];
+let LAB_COLORS  = {...LAB_BASE};
+let DATA = [];
+let cBar, cDef, cLine, cProd, cMes;
+
+const TT = {
+  backgroundColor:"#1a1e28", borderColor:"#252a38", borderWidth:1,
+  titleColor:"#e8eaf0", bodyColor:"#9ca3af", padding:10,
+};
+const AXES = {
+  x:{ ticks:{color:"#6b7280", font:{family:"DM Sans"}}, grid:{color:"#1a1e28"} },
+  y:{ ticks:{color:"#6b7280", font:{family:"DM Sans"}}, grid:{color:"#1e2330"} }
+};
+
+// ── Embedded data (pre-loaded) ────────────────────────────────────────────────
+const EMBEDDED = [{"fecha": "02/01/2026", "semana": "1", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "OSCB191125", "insp": "1000.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "02/01/2026", "semana": "1", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Lions Mane Blend", "variante": "180 cápsulas", "lote": "LMCB041225", "insp": "935.00", "rech": "2.00", "inc1": "Producto incompleto", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "02/01/2026", "semana": "1", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Mens Blend", "variante": "180 cápsulas", "lote": "MBCB211125", "insp": "22.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "02/01/2026", "semana": "1", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "218122501", "insp": "616.00", "rech": "4.00", "inc1": "Etiqueta dañada", "inc2": "Mal grabado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "05/01/2026", "semana": "2", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2534312", "insp": "2700.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "05/01/2026", "semana": "2", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "23012501", "insp": "450.00", "rech": "11.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/01/2026", "semana": "2", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2534312", "insp": "3290.00", "rech": "33.00", "inc1": "Etiqueta dañada", "inc2": "Mal grabado", "inc3": "Bote dañado", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "07/01/2026", "semana": "2", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "B Yeast Blend", "variante": "180 cápsulas", "lote": "BYCB051225", "insp": "385.00", "rech": "9.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "07/01/2026", "semana": "2", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Z Blend", "variante": "200 cápsulas", "lote": "ZBCB051225", "insp": "600.00", "rech": "27.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "09/01/2026", "semana": "2", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "218122501", "insp": "1508.00", "rech": "11.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "12/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Venflow Platinum", "variante": "240 cápsulas", "lote": "VPCB171225", "insp": "435.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "14/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Venflow Platinum", "variante": "240 cápsulas", "lote": "VPCB171225", "insp": "450.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "15/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Collagen Blend I II III V X", "variante": "180 cápsulas", "lote": "CNCB051225", "insp": "500.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "15/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Mushroom Blend", "variante": "180 cápsulas", "lote": "MUCB020126", "insp": "1258.00", "rech": "5.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "15/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "B Yeast Blend", "variante": "180 cápsulas", "lote": "BYCB070126", "insp": "1011.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "16/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2535412", "insp": "2220.00", "rech": "5.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "16/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012602", "insp": "1200.00", "rech": "17.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "17/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012603", "insp": "1200.00", "rech": "5.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "17/01/2026", "semana": "3", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012603", "insp": "1200.00", "rech": "93.00", "inc1": "Producto incompleto", "inc2": "Mal grabado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "19/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012602", "insp": "750.00", "rech": "12.00", "inc1": "Bote dañado", "inc2": "Mal grabado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "19/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012603", "insp": "450.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "19/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2535412", "insp": "1602.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "20/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "205012604", "insp": "720.00", "rech": "9.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "20/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "205012604", "insp": "1200.00", "rech": "15.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "20/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Venflow Platinum", "variante": "240 cápsulas", "lote": "VPCB130126", "insp": "550.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "20/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB080126", "insp": "650.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "20/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Pros Blend", "variante": "180 cápsulas", "lote": "PPCB120126", "insp": "1034.00", "rech": "1.00", "inc1": "Bote dañado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "21/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "222012601", "insp": "1200.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "21/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB080126", "insp": "1650.00", "rech": "2.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "21/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012603", "insp": "330.00", "rech": "7.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "21/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012602", "insp": "780.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "21/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "221012601", "insp": "90.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "22/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "222012602", "insp": "1018.00", "rech": "17.00", "inc1": "Lote incorrecto", "inc2": "Mal grabado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "22/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "222012602", "insp": "962.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "Bote dañado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "23/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "222012603", "insp": "930.00", "rech": "18.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "23/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "222012603", "insp": "1500.00", "rech": "28.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "23/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "GCE", "prod": "Venflow Platinum", "variante": "240 cápsulas", "lote": "VPCB130126", "insp": "2.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "24/01/2026", "semana": "4", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "223012602", "insp": "1200.00", "rech": "9.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "26/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "223012602", "insp": "1200.00", "rech": "8.00", "inc1": "Mal grabado", "inc2": "Producto incompleto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "219122501", "insp": "988.00", "rech": "8.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "28/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "211122501", "insp": "2450.00", "rech": "246.00", "inc1": "Mal grabado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "29/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "211122501", "insp": "2696.00", "rech": "22.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "29/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "211122501", "insp": "2445.00", "rech": "96.00", "inc1": "Etiqueta dañada", "inc2": "Mal grabado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "29/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2636901", "insp": "1800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "29/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2636901", "insp": "1800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "30/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2636901", "insp": "1360.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "30/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "211122501", "insp": "2408.00", "rech": "256.00", "inc1": "Mal grabado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "30/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Resveratrol", "variante": "180 cápsulas", "lote": "2637401", "insp": "436.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "30/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Joint Blend", "variante": "200 cápsulas", "lote": "2637601", "insp": "576.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "31/01/2026", "semana": "5", "mes": "enero", "anio": "2026", "lab": "Zuma", "prod": "Joint Blend", "variante": "200 cápsulas", "lote": "2637601", "insp": "510.00", "rech": "60.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "04/02/2026", "semana": "6", "mes": "febrero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "206022601", "insp": "800.00", "rech": "34.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "04/02/2026", "semana": "6", "mes": "febrero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "204022604", "insp": "1200.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "04/02/2026", "semana": "6", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2636901", "insp": "1360.00", "rech": "310.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "04/02/2026", "semana": "6", "mes": "febrero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "226012602", "insp": "1200.00", "rech": "23.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "05/02/2026", "semana": "6", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2636901", "insp": "1440.00", "rech": "277.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/02/2026", "semana": "6", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2636901", "insp": "1440.00", "rech": "295.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/02/2026", "semana": "6", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2638301", "insp": "1662.00", "rech": "1662.00", "inc1": "Otro", "inc2": "", "inc3": "", "estatus": "Rechazado", "obs": "Etiqueta diferente", "tiene": "Sí"}, {"fecha": "10/02/2026", "semana": "7", "mes": "febrero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209012604", "insp": "1140.00", "rech": "6.00", "inc1": "Mal grabado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "10/02/2026", "semana": "7", "mes": "febrero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "226012603", "insp": "1200.00", "rech": "61.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "12/02/2026", "semana": "7", "mes": "febrero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB290126", "insp": "745.00", "rech": "1.00", "inc1": "Producto incompleto", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "12/02/2026", "semana": "7", "mes": "febrero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB210126", "insp": "78.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "13/02/2026", "semana": "7", "mes": "febrero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB290126", "insp": "800.00", "rech": "22.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "16/02/2026", "semana": "8", "mes": "febrero", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "206022601", "insp": "1200.00", "rech": "51.00", "inc1": "Mal grabado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "19/02/2026", "semana": "8", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "2642502", "insp": "1200.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "21/02/2026", "semana": "8", "mes": "febrero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB290126", "insp": "1290.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "24/02/2026", "semana": "9", "mes": "febrero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB290126", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "24/02/2026", "semana": "9", "mes": "febrero", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB290126", "insp": "525.00", "rech": "10.00", "inc1": "Mal grabado", "inc2": "Producto incompleto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/02/2026", "semana": "9", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "2642502", "insp": "781.00", "rech": "5.00", "inc1": "Mal grabado", "inc2": "Lote incorrecto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/02/2026", "semana": "9", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "2642502", "insp": "1200.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "28/02/2026", "semana": "9", "mes": "febrero", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2643502", "insp": "960.00", "rech": "60.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "02/03/2026", "semana": "10", "mes": "marzo", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2643502", "insp": "2722.00", "rech": "91.00", "inc1": "Bote dañado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "02/03/2026", "semana": "10", "mes": "marzo", "anio": "2026", "lab": "Zuma", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "2643502", "insp": "2700.00", "rech": "30.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "13/03/2026", "semana": "11", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB290126", "insp": "980.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "14/03/2026", "semana": "11", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110326", "insp": "613.00", "rech": "5.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "14/03/2026", "semana": "11", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB290126", "insp": "337.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "18/03/2026", "semana": "12", "mes": "marzo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "204022603", "insp": "1440.00", "rech": "66.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "18/03/2026", "semana": "12", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB100326", "insp": "1000.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "19/03/2026", "semana": "12", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110326", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "19/03/2026", "semana": "12", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110326", "insp": "600.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "19/03/2026", "semana": "12", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110326", "insp": "1526.00", "rech": "19.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "26/03/2026", "semana": "13", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110326", "insp": "750.00", "rech": "21.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "26/03/2026", "semana": "13", "mes": "marzo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB100326", "insp": "750.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "31/03/2026", "semana": "14", "mes": "marzo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "224032603", "insp": "700.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "01/04/2026", "semana": "14", "mes": "abril", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2647003", "insp": "545.00", "rech": "65.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "223012603", "insp": "1199.00", "rech": "8.00", "inc1": "Mal grabado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "223012603", "insp": "258.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB080126", "insp": "66.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110326", "insp": "47.00", "rech": "47.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB240326", "insp": "1250.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "08/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "210022601", "insp": "177.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "210022601", "insp": "180.00", "rech": "1.00", "inc1": "Bote dañado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "10/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB240326", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "10/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB100326", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "11/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Collagen Blend I II III V X", "variante": "90 cápsulas", "lote": "CNCB270326", "insp": "507.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "11/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB240326", "insp": "600.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "11/04/2026", "semana": "15", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB100326", "insp": "500.00", "rech": "13.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "13/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB310326", "insp": "900.00", "rech": "1.00", "inc1": "Producto incompleto", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "13/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB100326", "insp": "219.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "13/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB240326", "insp": "83.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "13/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "241 cápsulas", "lote": "GMCB110326", "insp": "1400.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "13/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Collagen Blend I II III V X", "variante": "180 cápsulas", "lote": "CNCB270326", "insp": "1050.00", "rech": "4.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "14/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110326", "insp": "50.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "14/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB080426", "insp": "950.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "14/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB310326", "insp": "50.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "15/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB310326", "insp": "1500.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "15/04/2026", "semana": "16", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB310326", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "20/04/2026", "semana": "17", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB080426", "insp": "1018.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "20/04/2026", "semana": "17", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB310326", "insp": "13.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "20/04/2026", "semana": "17", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB080426", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "21/04/2026", "semana": "17", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB080426", "insp": "862.00", "rech": "112.00", "inc1": "Bote dañado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "Corrección interna", "tiene": "Sí"}, {"fecha": "27/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "53.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "28/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "28/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2657404", "insp": "1800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "28/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "28/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2657404", "insp": "1800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "29/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042603", "insp": "1200.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "29/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "29/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "900.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "29/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "29/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "29/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "Producto incompleto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "29/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2657404", "insp": "1436.00", "rech": "26.00", "inc1": "Mal grabado", "inc2": "Etiqueta dañada", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "30/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Icelandic Krill Oil", "variante": "150 cápsulas", "lote": "IKCB060426", "insp": "623.00", "rech": "6.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "30/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "Zuma", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "2659004", "insp": "1510.00", "rech": "19.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "30/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "MYPB270426", "insp": "1000.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "30/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042603", "insp": "1200.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "Lote incorrecto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "30/04/2026", "semana": "18", "mes": "abril", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "02/05/2026", "semana": "18", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2657504", "insp": "1470.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "04/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2657504", "insp": "1800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "04/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2657504", "insp": "1840.00", "rech": "19.00", "inc1": "Bote dañado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "04/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1328.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "05/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "210042603", "insp": "1200.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "05/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Icelandic Krill Oil", "variante": "150 cápsulas", "lote": "IKCB060426", "insp": "850.00", "rech": "10.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "05/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042603", "insp": "360.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "05/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042604", "insp": "360.00", "rech": "8.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "3.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "210042603", "insp": "450.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Vsion Blend", "variante": "180 cápsulas", "lote": "VSCB070426", "insp": "1500.00", "rech": "5.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "222042602", "insp": "1198.00", "rech": "4.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "210042602", "insp": "1170.00", "rech": "4.00", "inc1": "Producto incompleto", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042602", "insp": "30.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "208042604", "insp": "360.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "208042604", "insp": "1200.00", "rech": "54.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "06/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "210042602", "insp": "450.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "07/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "206042604", "insp": "2046.00", "rech": "39.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "07/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042604", "insp": "360.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "07/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042602", "insp": "1200.00", "rech": "8.00", "inc1": "Lote incorrecto", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "07/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042601", "insp": "1200.00", "rech": "16.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "208042604", "insp": "1200.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "08/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042602", "insp": "1200.00", "rech": "4.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "09/05/2026", "semana": "19", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042601", "insp": "1200.00", "rech": "4.00", "inc1": "Mal grabado", "inc2": "Producto incompleto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "11/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042604", "insp": "1200.00", "rech": "75.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "11/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042604", "insp": "1200.00", "rech": "40.00", "inc1": "Mal grabado", "inc2": "Lote incorrecto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "11/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "210042602", "insp": "1200.00", "rech": "13.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "11/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "209042602", "insp": "330.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "12/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "222042603", "insp": "420.00", "rech": "60.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "12/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "222042602", "insp": "360.00", "rech": "30.00", "inc1": "Mal grabado", "inc2": "Lote incorrecto", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "13/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "224042604", "insp": "1200.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "13/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "224042603", "insp": "1200.00", "rech": "5.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "14/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Pure Berberine", "variante": "180 cápsulas", "lote": "2660505", "insp": "1620.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "14/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "2660905", "insp": "1800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "14/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Ashwagandha", "variante": "200 cápsulas", "lote": "2658904", "insp": "1800.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "15/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Ashwagandha", "variante": "200 cápsulas", "lote": "2658904", "insp": "488.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "15/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "MYPB270426", "insp": "8812.00", "rech": "18.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "15/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "2660905", "insp": "420.00", "rech": "22.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "15/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Pure Berberine", "variante": "180 cápsulas", "lote": "2660505", "insp": "300.00", "rech": "2.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "15/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Citrate Mag", "variante": "240 cápsulas", "lote": "2661005", "insp": "332.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "15/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Platinum", "variante": "180 cápsulas", "lote": "224042602", "insp": "120.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "15/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Icelandic Krill Oil", "variante": "150 cápsulas", "lote": "IKCB060426", "insp": "200.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "16/05/2026", "semana": "20", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K13", "variante": "300 cápsulas", "lote": "224042603", "insp": "720.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "18/05/2026", "semana": "21", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Pure Berberine", "variante": "180 cápsulas", "lote": "2660505", "insp": "30.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "19/05/2026", "semana": "21", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Pure Berberine", "variante": "180 cápsulas", "lote": "2660505", "insp": "622.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "19/05/2026", "semana": "21", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "MYPB270426", "insp": "206.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "20/05/2026", "semana": "21", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "240 cápsulas", "lote": "2637101", "insp": "160.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "20/05/2026", "semana": "21", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "213052602", "insp": "1140.00", "rech": "33.00", "inc1": "Lote incorrecto", "inc2": "Mal grabado", "inc3": "Mala inyección", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "21/05/2026", "semana": "21", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "213152602", "insp": "1200.00", "rech": "12.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "25/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "215052603", "insp": "160.00", "rech": "4.00", "inc1": "Etiqueta dañada", "inc2": "", "inc3": "", "estatus": "Recibido", "obs": "", "tiene": "Sí"}, {"fecha": "25/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Omega 3 Salmon", "variante": "180 cápsulas", "lote": "213052603", "insp": "1200.00", "rech": "150.00", "inc1": "Mal grabado", "inc2": "Mala inyección", "inc3": "", "estatus": "Rechazado", "obs": "No apto Retail", "tiene": "Sí"}, {"fecha": "26/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110526", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "26/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110526", "insp": "1500.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "26/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Glycinate Mag", "variante": "240 cápsulas", "lote": "GMCB110526", "insp": "300.00", "rech": "3.00", "inc1": "Bote dañado", "inc2": "Mal grabado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "26/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "MYPB190526", "insp": "1041.00", "rech": "6.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "26/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "207042601", "insp": "2229.00", "rech": "66.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "202042603", "insp": "2237.00", "rech": "23.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "GCE", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "MYPB190526", "insp": "1152.00", "rech": "13.00", "inc1": "Bote dañado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "203042601", "insp": "2240.00", "rech": "4.00", "inc1": "Producto incompleto", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "27/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "PH&S", "prod": "Coconut Oil D3+K2", "variante": "300 cápsulas", "lote": "207042602", "insp": "2237.00", "rech": "0.00", "inc1": "", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "No"}, {"fecha": "29/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "246 g", "lote": "2663605", "insp": "1083.00", "rech": "3.00", "inc1": "Bote dañado", "inc2": "Mal grabado", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "29/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Myo & D-Chiro Inositol Platinum", "variante": "240 cápsulas", "lote": "2663905", "insp": "834.00", "rech": "1.00", "inc1": "Mal grabado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}, {"fecha": "29/05/2026", "semana": "22", "mes": "mayo", "anio": "2026", "lab": "Zuma", "prod": "Resveratrol", "variante": "90 cápsulas", "lote": "2663005", "insp": "1500.00", "rech": "1.00", "inc1": "Bote dañado", "inc2": "", "inc3": "", "estatus": "Liberado", "obs": "", "tiene": "Sí"}];
+
+function parseNum(v){ const n=parseFloat(String(v).replace(",",".")); return isNaN(n)?0:n; }
+function parseFecha(s){
+  if(!s) return null;
+  const m=s.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if(m) return {str:s, mesNum:+m[2], anio:+m[3], mesKey:`${m[3]}-${String(m[2]).padStart(2,"0")}`};
+  return null;
+}
+
+function buildFromRaw(rows){
+  DATA=[];
+  rows.forEach(r=>{
+    const fecha = r.fecha||r.Fecha||"";
+    const f=parseFecha(fecha); if(!f) return;
+    const lab  = (r.lab||r.Laboratorio||"").trim();
+    const prod = (r.prod||r.Producto||"").trim();
+    const sem  = parseInt(r.semana||r.Semana)||0;
+    const insp = parseNum(r.insp||r["Cantidad recibida"]||0);
+    const rech = parseNum(r.rech||r["Cantidad con incidencia"]||0);
+    const inc1 = (r.inc1||r["Incidencia 1"]||"").trim();
+    const inc2 = (r.inc2||r["Incidencia 2"]||"").trim();
+    const inc3 = (r.inc3||r["Incidencia 3"]||"").trim();
+    const mesNom= (r.mes||r.Mes||"").toLowerCase();
+    if(!lab||!insp) return;
+    DATA.push({fechaStr:f.str, mes:f.mesKey, mesNum:f.mesNum, mesNom, anio:f.anio,
+               sem, lab, prod, insp, rech, defectos:[...new Set([inc1,inc2,inc3].filter(Boolean))].join(",")});
+  });
+  const labs=[...new Set(DATA.map(r=>r.lab))].sort();
+  LAB_COLORS={};
+  labs.forEach((l,i)=>{ LAB_COLORS[l]=LAB_BASE[l]||PALETTE[i%PALETTE.length]; });
+  buildFilters(); render();
+}
+
+// ── CSV upload ────────────────────────────────────────────────────────────────
+document.getElementById("fileInput").addEventListener("change", e=>{
+  const f=e.target.files[0]; if(!f) return;
+  Papa.parse(f,{
+    header:true, skipEmptyLines:true, encoding:"UTF-8",
+    complete: res=>{
+      buildFromRaw(res.data);
+      const now=new Date();
+      document.getElementById("updateTag").textContent=
+        `Actualizado: ${now.toLocaleDateString("es-MX")} ${now.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}`;
+    }
+  });
+});
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function buildFilters(){
+  const ls=document.getElementById("filtLab");
+  ls.innerHTML='<option value="">Todos</option>';
+  [...new Set(DATA.map(r=>r.lab))].sort().forEach(l=>{
+    const o=document.createElement("option"); o.value=l; o.textContent=l; ls.appendChild(o);
+  });
+  const mesKeys=[...new Set(DATA.map(r=>r.mes))].sort();
+  const ms=document.getElementById("filtMes");
+  ms.innerHTML='<option value="">Todos</option>';
+  mesKeys.forEach(k=>{
+    const [a,m]=k.split("-");
+    const o=document.createElement("option"); o.value=k;
+    o.textContent=`${capitalize(mesNomFromKey(k))} ${a}`; ms.appendChild(o);
+  });
+  rebuildSems(DATA);
+  ls.onchange=()=>{ rebuildSems(filtLM()); render(); };
+  ms.onchange=()=>{ rebuildSems(filtLM()); render(); };
+  document.getElementById("filtSem").onchange=render;
+}
+
+function mesNomFromKey(k){
+  const m=parseInt(k.split("-")[1]);
+  return Object.keys(MESES_ORDEN).find(n=>MESES_ORDEN[n]===m)||k;
+}
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function filtLM(){
+  const lab=document.getElementById("filtLab").value;
+  const mes=document.getElementById("filtMes").value;
+  return DATA.filter(r=>(!lab||r.lab===lab)&&(!mes||r.mes===mes));
+}
+function rebuildSems(pool){
+  const sel=document.getElementById("filtSem");
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Todas</option>';
+  [...new Set(pool.map(r=>r.sem))].filter(Boolean).sort((a,b)=>a-b).forEach(s=>{
+    const o=document.createElement("option"); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o);
+  });
+  if([...sel.options].some(o=>o.value==cur)) sel.value=cur;
+}
+function filtered(){
+  const sem=document.getElementById("filtSem").value;
+  return filtLM().filter(r=>(!sem||r.sem==sem));
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(){
+  const data=filtered();
+  const ti=data.reduce((a,r)=>a+r.insp,0);
+  const tr=data.reduce((a,r)=>a+r.rech,0);
+  const pct=ti?tr/ti*100:0;
+  const ci=data.filter(r=>r.rech>0).length;
+  const tot=data.length;
+
+  document.getElementById("kpiGrid").innerHTML=[
+    {l:"Cantidad recibida", v:ti.toLocaleString("es-MX"), s:"piezas totales",    c:"info"},
+    {l:"Con incidencia",    v:tr.toLocaleString("es-MX"), s:`${pct.toFixed(2)}% del total`, c:pct>3?"danger":pct>1?"warn":"ok"},
+    {l:"% Incidencia",      v:pct.toFixed(2)+"%",          s:"tasa general",      c:pct>3?"danger":pct>1?"warn":"ok"},
+    {l:"Lotes inspeccionados",v:tot,                        s:"registros totales", c:"info"},
+    {l:"Lotes con incidencia",v:ci,                         s:`${tot?(ci/tot*100).toFixed(0):0}% de lotes`, c:(tot&&ci/tot>.5)?"warn":"ok"},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="kpi-label">${k.l}</div><div class="kpi-val">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join("");
+
+  renderBar(data); renderDef(data); renderLine(data); renderProd(data); renderMes(data); renderLabTable(data);
+}
+
+function renderBar(data){
+  const labs=[...new Set(data.map(r=>r.lab))].sort();
+  const insp=labs.map(l=>data.filter(r=>r.lab===l).reduce((a,r)=>a+r.insp,0));
+  const rech=labs.map(l=>data.filter(r=>r.lab===l).reduce((a,r)=>a+r.rech,0));
+  if(cBar) cBar.destroy();
+  cBar=new Chart(document.getElementById("cBar"),{type:"bar",
+    data:{labels:labs,datasets:[
+      {label:"Recibido",      data:insp,backgroundColor:"#3b82f622",borderColor:"#3b82f6",borderWidth:2,borderRadius:6},
+      {label:"Con incidencia",data:rech,backgroundColor:"#ef444422",borderColor:"#ef4444",borderWidth:2,borderRadius:6}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT}},scales:{x:{...AXES.x},y:{...AXES.y}}}});
+}
+
+function renderDef(data){
+  const t={};
+  data.forEach(r=>{
+    if(!r.defectos) return;
+    // deduplicate types within the same record to avoid double-counting
+    const tipos=[...new Set(r.defectos.split(",").map(x=>x.trim()).filter(Boolean))];
+    tipos.forEach(x=>{ t[x]=(t[x]||0)+r.rech; });
+  });
+  const labels=Object.keys(t).sort((a,b)=>t[b]-t[a]);
+  const vals=labels.map(l=>t[l]);
+  document.getElementById("legDef").innerHTML=labels.map((l,i)=>
+    `<span><span class="ldot" style="background:${PALETTE[i%PALETTE.length]}"></span>${l} (${vals[i].toLocaleString("es-MX")})</span>`).join("");
+  if(cDef) cDef.destroy();
+  cDef=new Chart(document.getElementById("cDef"),{type:"doughnut",
+    data:{labels,datasets:[{data:vals,backgroundColor:PALETTE.map(c=>c+"99"),borderColor:PALETTE,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"65%",
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed.toLocaleString("es-MX")} pzas`}}}}});
+}
+
+function renderLine(data){
+  const bd={};
+  data.forEach(r=>{ if(!bd[r.fechaStr]) bd[r.fechaStr]={i:0,r:0}; bd[r.fechaStr].i+=r.insp; bd[r.fechaStr].r+=r.rech; });
+  const dates=Object.keys(bd).sort((a,b)=>{const pa=a.split("/"),pb=b.split("/"); return new Date(pa[2],pa[1]-1,pa[0])-new Date(pb[2],pb[1]-1,pb[0]);});
+  const pcts=dates.map(d=>bd[d].i?+(bd[d].r/bd[d].i*100).toFixed(2):0);
+  if(cLine) cLine.destroy();
+  cLine=new Chart(document.getElementById("cLine"),{type:"line",
+    data:{labels:dates,datasets:[{label:"% incidencia",data:pcts,
+      borderColor:"#10b981",backgroundColor:"#10b98112",pointBackgroundColor:"#10b981",pointRadius:3,tension:0.35,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>` ${ctx.parsed.y}%`}}},
+      scales:{x:{...AXES.x,ticks:{...AXES.x.ticks,maxRotation:45,autoSkip:true,font:{size:10,family:"DM Sans"}}},
+              y:{...AXES.y,ticks:{...AXES.y.ticks,callback:v=>v+"%"}}}}});
+}
+
+function renderProd(data){
+  const bp={};
+  data.forEach(r=>{ if(!bp[r.prod]) bp[r.prod]={i:0,r:0,lab:r.lab}; bp[r.prod].i+=r.insp; bp[r.prod].r+=r.rech; });
+  const prods=Object.keys(bp).sort((a,b)=>(bp[b].r/bp[b].i)-(bp[a].r/bp[a].i));
+  const pcts=prods.map(p=>bp[p].i?+(bp[p].r/bp[p].i*100).toFixed(2):0);
+  const bgs=prods.map(p=>(LAB_COLORS[bp[p].lab]||"#6b7280")+"44");
+  const bds=prods.map(p=>LAB_COLORS[bp[p].lab]||"#6b7280");
+  const ll=[...new Set(prods.map(p=>bp[p].lab))];
+  document.getElementById("legProd").innerHTML=ll.map(l=>
+    `<span><span class="ldot" style="background:${LAB_COLORS[l]||"#6b7280"}"></span>${l}</span>`).join("");
+  const h=Math.max(240,prods.length*36+60);
+  const wrap=document.getElementById("prodWrap");
+  wrap.innerHTML=`<canvas id="cProd"></canvas>`; wrap.style.height=h+"px";
+  if(cProd){cProd.destroy();cProd=null;}
+  cProd=new Chart(document.getElementById("cProd"),{type:"bar",
+    data:{labels:prods,datasets:[{label:"% incidencia",data:pcts,backgroundColor:bgs,borderColor:bds,borderWidth:2,borderRadius:5}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:ctx=>` ${ctx.parsed.x}%`}}},
+      scales:{x:{...AXES.x,ticks:{...AXES.x.ticks,callback:v=>v+"%"}},
+              y:{...AXES.y,ticks:{...AXES.y.ticks,font:{size:11,family:"DM Sans"}}}}}});
+}
+
+function renderMes(data){
+  // group by mes+lab
+  const mesSet=[...new Set(data.map(r=>r.mes))].sort();
+  const labs=[...new Set(data.map(r=>r.lab))].sort();
+  const datasets=labs.map((lab,i)=>{
+    const vals=mesSet.map(m=>{
+      const rows=data.filter(r=>r.mes===m&&r.lab===lab);
+      const ti=rows.reduce((a,r)=>a+r.insp,0);
+      const tr=rows.reduce((a,r)=>a+r.rech,0);
+      return ti?+(tr/ti*100).toFixed(2):null;
+    });
+    const c=LAB_COLORS[lab]||PALETTE[i];
+    return {label:lab,data:vals,borderColor:c,backgroundColor:c+"22",
+            pointBackgroundColor:c,pointRadius:4,tension:0.35,fill:false,spanGaps:true};
+  });
+  const labels=mesSet.map(k=>{ const [a,m]=k.split("-"); return MESES_LABEL[+m]+" "+a; });
+  if(cMes) cMes.destroy();
+  cMes=new Chart(document.getElementById("cMes"),{type:"line",
+    data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,labels:{color:"#9ca3af",font:{family:"DM Sans",size:12},boxWidth:10,boxHeight:10}},
+               tooltip:{...TT,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%`}}},
+      scales:{x:{...AXES.x},y:{...AXES.y,ticks:{...AXES.y.ticks,callback:v=>v+"%"}}}}});
+}
+
+function renderLabTable(data){
+  const labs=[...new Set(data.map(r=>r.lab))].sort();
+  const maxPct = Math.max(...labs.map(l=>{
+    const rows=data.filter(r=>r.lab===l);
+    const ti=rows.reduce((a,r)=>a+r.insp,0);
+    const tr=rows.reduce((a,r)=>a+r.rech,0);
+    return ti?tr/ti*100:0;
+  }), 0.01);
+
+  const rows = labs.map(l=>{
+    const rows=data.filter(r=>r.lab===l);
+    const ti=rows.reduce((a,r)=>a+r.insp,0);
+    const tr=rows.reduce((a,r)=>a+r.rech,0);
+    const pct=ti?tr/ti*100:0;
+    const lotes=rows.length;
+    const lotesInc=rows.filter(r=>r.rech>0).length;
+    const color=LAB_COLORS[l]||"#6b7280";
+    const barW=Math.round(pct/maxPct*100);
+    return `<tr>
+      <td><span class="lab-dot" style="background:${color}"></span>${l}</td>
+      <td>${ti.toLocaleString("es-MX")}</td>
+      <td>${tr.toLocaleString("es-MX")}</td>
+      <td>
+        <div class="pct-bar-wrap">
+          <span style="color:${pct>3?"#ef4444":pct>1?"#f59e0b":"#10b981"}">${pct.toFixed(2)}%</span>
+          <div class="pct-bar-bg"><div class="pct-bar-fill" style="width:${barW}%;background:${color}"></div></div>
+        </div>
+      </td>
+      <td>${lotes}</td>
+      <td>${lotesInc} <span style="color:var(--muted);font-size:11px">(${lotes?(lotesInc/lotes*100).toFixed(0):0}%)</span></td>
+    </tr>`;
+  }).join("");
+
+  const totalI=data.reduce((a,r)=>a+r.insp,0);
+  const totalR=data.reduce((a,r)=>a+r.rech,0);
+  const totalPct=totalI?totalR/totalI*100:0;
+  const totalLotes=data.length;
+  const totalInc=data.filter(r=>r.rech>0).length;
+
+  document.getElementById("labTableWrap").innerHTML=`
+    <div class="tbl-title">Resumen por laboratorio</div>
+    <table class="lab-table">
+      <thead><tr>
+        <th>Laboratorio</th><th>Recibido</th><th>Con inc.</th><th>% Inc.</th><th>Lotes</th><th>Lotes c/inc.</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr>
+        <td>TOTAL</td>
+        <td>${totalI.toLocaleString("es-MX")}</td>
+        <td>${totalR.toLocaleString("es-MX")}</td>
+        <td>${totalPct.toFixed(2)}%</td>
+        <td>${totalLotes}</td>
+        <td>${totalInc} (${totalLotes?(totalInc/totalLotes*100).toFixed(0):0}%)</td>
+      </tr></tfoot>
+    </table>`;
+}
+
+// ── Boot: load embedded data ──────────────────────────────────────────────────
+buildFromRaw(EMBEDDED);
+</script>
+</body>
+</html>
